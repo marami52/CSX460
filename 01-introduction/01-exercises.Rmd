@@ -23,10 +23,11 @@ Write a function (f) that takes a vector of numbers, **x**, and returns a vector
 
 ```{r}
 f <- function(x) {
-  
-  # ...
-  
+  result=prod(x)/x
+  result
 }
+x <- c( 1, 5, 2, 8 )
+f(x)
 
 ```
     
@@ -50,7 +51,13 @@ Write a function f(x) to accept an integer vector, and returns a vector with tho
 
 ```{r}
 f <- function(x) {
-  # ...
+  result<-x
+  result[(x %% 3)==0] <- "Fizz"
+  result[(x %% 5)==0] <- "Buzz"
+  result[(x %% 15)==0] <- "FizzBuzz"
+  result
   
 }
+
+f(1:20)
 ```
