@@ -49,9 +49,6 @@ naive_guess <- median(dat$FE)
 
 - plot FE (Fuel Econonomy) vs. EngDisp. Plot the naive guess.
 
-```{r}
-# ... ggplot2  
-```
 
 - Sample 10 observations from `dat`
 - Plot this data. Add a line for the naive_guess. 
@@ -65,7 +62,7 @@ set.seed(314)
 samp <- dat %>% sample_n(10)
 
 # Plots 
-...
+
 samp %>% ggplot(aes(x=EngDispl, y=FE))+geom_point()+geom_hline(yintercept = naive_guess, color='red')+stat_smooth(method="lm", se=FALSE)
 
 ```
@@ -89,27 +86,33 @@ rmse <- function(y,yhat) {
 }
 
 mae <- function(y, yhat) {
-  # ...
+  abs(y-yhat) %>% mean 
 }
 
+
 medae <- function(y, yhat) { 
-  # ...
+  abs(y-yhat) %>% median
 }
+
+
 
 ```
 
 Use these functions to evaluate the loss/performance of:
 - the naive guess
-
-
-
+``` {r}
+rmse(dat$EngDispl, rep_len(mean(dat$FE),length(dat$EngDispl)))
+mae(dat$EngDispl, rep_len(mean(dat$FE),length(dat$EngDispl)))
+medae(dat$EngDispl, rep_len(mean(dat$FE),length(dat$EngDispl)))
+```
 ## Exercise 3: Linear Model and Model Performance 
 
 - Use `lm` to create a linear model fitting the relationship between FE and EngDispl for the cars2010 data set
 
 
 ```{r}
-fit.2010 <- ... 
+fit.2010 <- lm(FE~EngDispl, data=cars2010)
+summary(fit.2010)
 ```
 
 - Use your functions to evaluate the training error
@@ -119,13 +122,13 @@ fit.2010 <- ...
 
 ```{r}
 
-y.2010 <- ... 
-y.2011 <- ... 
-y.2012 <- ...
+y.2010 <- predict(fit.2010)
+y.2011 <- predict(fit.2010,cars2011) 
+y.2012 <- predict(fit.2010,cars2012)
 
-rmse.2010 <- ...
-rmse.2011 <- ...
-rmse.2012 <- ... 
+rmse.2010 <- rmse(cars2010$FE,y.2010)
+rmse.2011 <- rmse(cars2011$FE,y.2011)
+rmse.2012 <- rmse(cars2012$FE,y.2012)
 
 ```
 
@@ -145,6 +148,7 @@ rmse.2012
 
 
 ```{r}
-fit.2010 <- ...
-betas <- ...
+fit.2011 <- lm(FE~EngDispl+NumCyl+VarValveLift, data=cars2011)
+betas <- coef(fit.2011)
+betas
 ```
