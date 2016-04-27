@@ -59,11 +59,18 @@ Using Fuel Economy data set from the **AppliedPredictiveModeling** Package.
 ```{r}
 
  # Your work here
+fit.min<- lm(FE~1,fe)
+fit.min.forward<-MASS::stepAIC(fit.min, scope= ~1+ EngDispl+NumCyl+Transmission+FE+AirAspirationMethod+NumGears+TransLockup+TransCreeperGear+DriveDesc+IntakeValvePerCyl+ExhaustValvesPerCyl+CarlineClassDesc+VarValveTiming+VarValveLift
+, direction = "forward")
+
+fit.full<- lm(FE~.,fe)
+fit.full.backward<-MASS::stepAIC(fit.full, scope = ~1, direction = "backward")
 
 ```
 
 - Are they the same model? If not why?  Which is better?
 
+#They are not the same. The reason is that the impact of idependant variables in the model is dependant on the other variables on the model. In terms of AIC and RSS, both models are identical. However, "forward" model looks better since it has the same performance with fewer predictrs that mkes the model less complex.
 
 
 
@@ -84,16 +91,18 @@ Using Fuel Economy data set from the **AppliedPredictiveModeling** Package.
 ```{r}
 
 logistic <- function(x) { 
-  ... # Your work here  
+  y=1/(1+exp(-x)) # Your work here  
+  y
 }
-
-qplot( ... )
+x=seq(-10,10,.1)
+qplot( x, logistic(x), geom = "path" )
 
 logistic_inv <- function(y) { 
-  ... # Your work  
+  x=-log(1/y-1) # Your work
+  x
 }
-
-qplot(...) 
+y=seq(0,1,.01)
+qplot(y, logistic_inv(y), geom="path") 
 
 ```
 
@@ -112,8 +121,19 @@ c(0,0.5,1) %>% logistic_inv
 
 Using the GermanCredit data from the **Caret** package/ UCI Machine Learning Library, create a model for `Class` ("Good" vs. "Bad" ). Show your model performance.  
 
-```{r}
+```{r echo=F}
 
+fit.full<- glm(Class~ ., data=GermanCredit, family="binomial")
+fit.full.backward<-MASS::stepAIC(fit.full, scope = ~1, direction = "backward")
+```
+
+```{r}
+summary(fit.full.backward)
+prob=predict(fit.full.backward,type=c("response"))
+GermanCredit$prob=prob
+library(pROC)
+g <- roc(Class ~ prob, data = GermanCredit)
+plot(g)    
 
 ```
 
@@ -123,6 +143,56 @@ Using the GermanCredit data from the **Caret** package/ UCI Machine Learning Lib
 
 - Implement Kuhn's iterative feature removal function described in **APM** Section 3.5, page 47
 
+```{r echo=FALSE}
+#Remove dependant variables and those with all zero values
+
+subdata<-GermanCredit[ , !(names(GermanCredit) %in% c("Class", "prob", "Personal.Female.Single","Purpose.Vacation"))]
+
+
+loop=TRUE
+threshold=.7
+while (loop==TRUE) {
+z<-cor(subdata, method="spearman")
+z[lower.tri(z,diag=TRUE)]=NA  
+z=as.data.frame(as.table(z)) 
+z=na.omit(z)  
+z=z[order(-abs(z$Freq)),]   
+if (max(abs(as.data.frame(z)[,3])>threshold)){
+  mean.first<-mean(abs(cor(subdata[z[1,1]],subdata)))
+  mean.second<-mean(abs(cor(subdata[z[1,2]],subdata)))
+  if(mean.first>mean.second){
+    subdata<-subdata[ , !(names(subdata) %in% c(as.character(z[1,2])))]
+  } else {
+    subdata<-subdata[ , !(names(subdata) %in% c(as.character(z[1,1])))]
+  }
+}
+  
+ else{
+ loop=FALSE
+
+}
+
+}
+```
+
+```{r echo=F}
+Class<- GermanCredit$Class
+subdata<-cbind(subdata,Class)
+fit.full<- glm(Class~ ., data=subdata, family="binomial")
+fit.full.backward<-MASS::stepAIC(fit.full, scope = ~1, direction = "backward")
+```
+
+```{r}
+summary(fit.full.backward)
+prob=predict(fit.full.backward,type=c("response"))
+subdata$prob=prob
+library(pROC)
+g <- roc(Class ~ prob, data = subdata)
+plot(g)    
+
+```
+
+#As shown we could reach to almost similar AUC with less predictors
 
 
 ## Synthetic Data (Optional)
