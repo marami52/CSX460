@@ -4,13 +4,13 @@ author: "Your Name Here"
 date: "2016-05-xx"
 output: html_document
 ---
-
-## Reading:
-- **APM** Chapter 8.1-8.5 "Regression Trees and Rule-Based Models" (25 pages)
+  
+  ## Reading:
+  - **APM** Chapter 8.1-8.5 "Regression Trees and Rule-Based Models" (25 pages)
 - **APM** Chapter 14.1-14.5 "Classification Trees and Rule-Based"  
 
 ```{r, echo=FALSE, results='hide', warning=FALSE }
-packs <-  c('ggplot2', 'magrittr', 'dplyr', 'caret', 'AppliedPredictiveModeling')
+packs <-  c('ggplot2', 'magrittr', 'dplyr', 'caret', 'AppliedPredictiveModeling', 'MASS' , 'maptree' , 'pROC')
 
 for( nm in packs ) { 
   # message(nm)
@@ -26,8 +26,8 @@ for( nm in packs ) {
 ## Exercise 1: GermanCredit
 
 Revisit the GermanCredit data. Use `caret` to build models of `Class` using the following techniques:
-
-- glm
+  
+  - glm
 - rpart
 - knn
 - party::ctree
@@ -38,13 +38,29 @@ Save the caret objects with the names provided.
 
 ```{r}
 
+data("GermanCredit")
+gc <- GermanCredit
+
+ctrl <- trainControl( method="boot", number=5
+                      , classProb=TRUE, savePrediction=TRUE )
+
+
 # Your work here. 
 
-fit.glm <- ..
-fit.knn <- ..
-fit.rpart <- ..
-fit.rf <- ..
-fit.myown <- ..
+set.seed(1234)
+fit.glm <- train(Class ~ ., data=gc, method="glm", family="binomial", trControl=ctrl)
+set.seed(1234)
+fit.knn <- train( Class ~ ., data=gc, trControl=ctrl
+              , method="knn", tuneGrid=data.frame( k=c(40,50,60)))
+set.seed(1234)
+fit.rpart <- train( Class ~ ., data=gc, trControl=ctrl
+              , method="rpart", tuneLength=20) 
+set.seed(1234)
+fit.rf <- train( Class ~ ., data=gc, trControl=ctrl
+              , method="rf") 
+set.seed(1234)
+fit.gbm <- train( Class ~ ., data=gc, trControl=ctrl
+              , method="gbm")
 
 
 ````
@@ -52,25 +68,56 @@ fit.myown <- ..
 
 - Compare the models using `caret::confusionMatrix`
 - Comparing the models Using the `pROC` packages
-  - create ROC curves for the models 
-  
+- create ROC curves for the models 
+
 Show your work! 
 
 ```{r}
+cat('GLM')
+table(fit.glm$pred$pred, fit.glm$pred$obs) %>% confusionMatrix()
+roc <- roc(fit.glm$pred$obs, fit.glm$pred$Bad, auc=TRUE )
+roc %>% plot( print.auc=TRUE, grid=TRUE)
 
-.. # YOUR WORK HERE
+cat('Knn')
+table(fit.knn$pred$pred, fit.knn$pred$obs) %>% confusionMatrix()
+roc <- roc(fit.knn$pred$obs, fit.knn$pred$Bad, auc=TRUE )
+roc %>% plot( print.auc=TRUE, grid=TRUE)
+
+cat('rPart')
+table(fit.rpart$pred$pred, fit.rpart$pred$obs) %>% confusionMatrix()
+roc <- roc(fit.rpart$pred$obs, fit.rpart$pred$Bad, auc=TRUE )
+roc %>% plot( print.auc=TRUE, grid=TRUE)
+
+cat('Random Forest')
+table(fit.rf$pred$pred, fit.rf$pred$obs) %>% confusionMatrix()
+roc <- roc(fit.rf$pred$obs, fit.rf$pred$Bad, auc=TRUE )
+roc %>% plot( print.auc=TRUE, grid=TRUE)
+
+cat('GBM')
+table(fit.gbm$pred$pred, fit.gbm$pred$obs) %>% confusionMatrix()
+roc <- roc(fit.gbm$pred$obs, fit.gbm$pred$Bad, auc=TRUE )
+roc %>% plot( print.auc=TRUE, grid=TRUE)
+
+
+
+
+
 
 ```
 
 
 Q: Which models would you select based on these tools?
 
+###As shown in the results, GLM model has the highest accuracy and AUC that looks the champion. 
+
 Q: If you assume that a `Class=="bad""` is 10 more costly than `Class=="good"`, determine your threshold for the model of your choice.  Show your work.
 
 
 ```{r}
 
-.. # YOUR WORK HERE
-
+roc <- roc(fit.glm$pred$obs, fit.glm$pred$Bad, auc=TRUE )
+res<-coords(roc, "b", ret="t", best.method="youden", best.weights=c(10, 0.3))
+cat('The optiml threshold is: ', res)
 
 ```
+
