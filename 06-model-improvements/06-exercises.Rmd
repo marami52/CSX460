@@ -1,7 +1,7 @@
 ---
-title: "05-exercises"
-author: "Your Name Here"
-date: "2016-05-xx"
+title: "06-exercises"
+author: "Ali Marami"
+date: "2016-05-18"
 output: html_document
 ---
 
@@ -14,7 +14,7 @@ output: html_document
 
 ```{r,echo=FALSE}
 
-packs <-  c('AppliedPredictiveModeling', 'ggplot2', 'magrittr', 'dplyr')
+packs <-  c('AppliedPredictiveModeling', 'ggplot2', 'magrittr', 'dplyr', 'caret')
 
 for( nm in packs ) { 
   # message(nm)
@@ -38,35 +38,39 @@ This week we return to the Fuel Economy Data having learned much about model bui
 
 Start by making choosing a metric and making a naive guess of model performance: 
 
-Metric: _______________
-Naive Guess: _______________
-Expected Model Performance (based on Naive Guess): _______________
+Metric: _______rmse________
+Naive Guess: ______34.6_________
+Expected Model Performance (based on Naive Guess): ______8.1_________
 
 Show your work below for the calculations
 
 ```{r} 
 
   
-naive_guess = ..
+naive_guess = median(FE$FE)
 
-err_naive_guess = ..
+err_naive_guess = (FE$FE-rep(34.6, length(FE$FE)))^2 %>% mean %>% sqrt
 
 ```
 
 
-Based only your intuition, how low do your think you can get your metric: ___________
+Based only your intuition, how low do your think you can get your metric: _____8.1___because it's the median___
 
 
 ## Examine your data
 
  * Plot your response/outcome 
 
- * Make a guess of a strong predictor: _________________  
+ * Make a guess of a strong predictor: ____NumCyl_____________  
  * Plot your response vs your predictor. 
 
 ```{r}
 
-.. # Your work here
+
+
+plot(FE$FE,predict(lm(FE$FE ~ FE$EngDispl)))
+FE %>% ggplot(aes(x=EngDispl, y=FE))+geom_point()+stat_smooth(method="lm", se=FALSE)
+
 
 ```
 
@@ -77,14 +81,23 @@ Based only your intuition, how low do your think you can get your metric: ______
 Using **caret**, build a simple linear model and a simple tree model. 
 
 ```{r}
+rmse <- function(y,yhat) {
 
-fit.lm <- .. # Your model here
-fit.rp <- .. # Your model here
+  (y-yhat)^2 %>% mean %>% sqrt
+}
+
+ctrl <- trainControl( method="boot", number=5
+                      , classProb=TRUE, savePrediction=TRUE )
+
+fit.lm <- fit.lm <- train(FE ~ ., data=FE, method="lm", trControl=ctrl)
+fit.rp <- train( FE ~ ., data=FE, trControl=ctrl, method="rpart", tuneLength=20) 
+
+
 
 ```
 
 
-What did you learn about the data from these models.
+What did you learn about the data from these models. EngDispl and NumCyl are the main predictors
 
 
 
@@ -97,9 +110,15 @@ Now refine your models. Use **caret** to build advanced models:
 ```{r}
 
 # Your work here.
-fit.bag   <- .. # bagging model 
 
-fit.boost <- .. # boosting model
+fit.bag <- bag(FE, FE$FE, B = 10,
+               bagControl = bagControl(fit = ctreeBag$fit,
+                                       predict = ctreeBag$pred,
+                                       aggregate = ctreeBag$aggregate))
+
+
+fit.boost <- train( FE ~ ., data=FE, trControl=ctrl
+              , method="gbm")
 
 
 ```
@@ -108,4 +127,7 @@ fit.boost <- .. # boosting model
 ## Conclusion 
 
 Which model would you use and why?  Under different circumstances why would you choose one of the other models.
+
+I choose fit.bag since it has the best performance. For fit.boost, I didn't get the ValidDeviance and could not sort it out. Probably for larger datasets for which I need more computation power, I choose simpler models even with lower performance to reduce the cost of computation.
+
 
